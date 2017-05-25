@@ -5,3 +5,9 @@ class AgentConfig(object):
     batch_size = 32
     learning_rate = 0.00025
     learning_rate_decay = 0.96
+    num_stocks = 500
+    episode_size = 100
+    epsilon = .1
+    n_hidden = 128
+    C = 10
+    n_history = 5
