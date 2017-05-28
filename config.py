@@ -8,6 +8,8 @@ class AgentConfig(object):
     num_stocks = 500
     episode_size = 100
     epsilon = .1
-    n_hidden = 128
     C = 10
     n_history = 5
+
+    # network parameters
+    n_hidden = 128

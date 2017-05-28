@@ -1,19 +1,18 @@
 import pandas_datareader.data as web
 import numpy as np
 import pandas as pd
-from datetime import datetime
-from config import AgentConfig
+from sklearn import preprocessing
 
 
 class Environment:
     def __init__(self, start_date, end_date, config, datafile_loc='../fundretriever/snp500.h5'):
-        self.counter = 0
         self.datafile_loc = datafile_loc
         self.date_range = self.__build_date_range__(start_date, end_date)
         self.sectors = self.__build_sectors__()
         self.num_stocks = self.__build_num_stocks__(self.sectors)
         self.num_indicators = 5
         self.n_history = config.n_history
+        self.counter = self.n_history
 
     def reset_environment(self):
         self.counter = self.n_history
@@ -28,11 +27,14 @@ class Environment:
         return self.num_indicators
 
     def get_current_state(self):
+        return preprocessing.normalize(np.reshape(self.get_state_at_timestep(self.counter).values, (1, self.num_indicators * self.num_stocks)))
+
+    def get_n_history_state(self):
         state = []
-        for i in range(self.counter-self.n_history, self.counter):
-            s = self.get_state_at_timestep(i)
+        for t in range(self.counter - self.n_history, self.counter):
+            s = self.get_state_at_timestep(t)
             state.append(s.values.ravel())
-        return np.array(state)
+        return preprocessing.normalize(np.flip(np.reshape(np.array(state), (self.n_history, self.num_indicators * self.num_stocks)), axis=0))
 
     def get_state_at_timestep(self, timestep):
         state = pd.DataFrame(columns=['close', 'high', 'low', 'open', 'volume'])
@@ -77,14 +79,19 @@ class Environment:
 
 
 if __name__ == '__main__':
+    from datetime import datetime
+    from config import AgentConfig
+
     sd = datetime(2005, 1, 1)
     ed = datetime(2015, 1, 1)
     config = AgentConfig()
     env = Environment(sd, ed, config)
     state = env.get_current_state()
     print(state)
+    print(env.get_n_history_state())
 
     action = np.random.rand(env.num_stocks)
     action /= action.sum()
     s_prime, reward, terminal = env.act(action)
+    print(reward)
 

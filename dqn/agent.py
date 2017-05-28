@@ -10,15 +10,15 @@ class Agent(object):
         self.config = config
         self.epsilon = config.epsilon
         self.copy_estimators = config.C
-        self.replay_memory = ReplayMemory(self.config)  # initialize replay memory
-        self.Q = self.Q_hat = Q(config, environment)  # initialize Q functions
+        self.replay_memory = ReplayMemory(self.config, environment)  # initialize replay memory
+        self.Q = self.Q_hat = Q(config, environment, self.replay_memory)  # initialize Q functions
 
     def train(self):
         for episode in range(self.config.episode_size):
             self.env.reset_environment()  # reset environment each episode
             self.replay_memory.reset()  # reset replay memory
             for timestep in range(len(self.env.get_date_range())):
-                s = self.__preprocess_state__(self.env.get_current_state())
+                s = self.env.get_current_state()
                 action = self.__choose_action__(s)
                 s_prime, reward, terminal = self.env.act(action)
                 self.replay_memory.store_transition(s, action, reward, s_prime)
@@ -38,11 +38,6 @@ class Agent(object):
         else:
             action = self.Q.best_action(s)
         return action
-
-    def __preprocess_state__(self, s):
-        preprocessed_state = s.ravel()
-        preprocessed_state = preprocessing.normalize(preprocessed_state)
-        return preprocessed_state
 
     def __with_probability__(self, epsilon):
         random = np.random.random_sample()
