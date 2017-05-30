@@ -19,7 +19,7 @@ class Q:
 
         # Define placeholders and model
         self.x_placeholder = tf.placeholder("float", [None, self.n_history, self.n_inputs])
-        self.y_placeholder = tf.placeholder("float", [None, 5, 5])
+        self.y_placeholder = tf.placeholder("float", [None, self.n_outputs])
         self.model = Model(self.x_placeholder, self.y_placeholder, config, env)
 
         # Start tf session
@@ -29,6 +29,7 @@ class Q:
 
         # Define hyperparameters
         self.learning_rate = config.learning_rate
+        self.gamma = config.gamma
 
     def best_action(self, s):
         previous_transitions = self.replay_memory.get_previous_state_action()
@@ -44,10 +45,20 @@ class Q:
         pass
 
     def train_network(self, y, samples):
+        y = []
+        for index, sample in samples.iterrows():
+            print()
         pass
 
     def compute_targets(self, samples):
-        pass
+        y = []
+        for index, sample in samples.iterrows():
+            s_prime = sample['s_prime'][0]
+            a_prime = self.best_action(s_prime)
+            reward = sample['r'] + self.gamma * self.__predict_reward__(s_prime, a_prime)
+            y.append(reward)
+        return y
+
 
     def set_weights(self, new_weights):
         self.weights = new_weights
@@ -69,6 +80,11 @@ class Q:
 
         # return concatenated input
         return np.concatenate((states, actions), axis=1)
+
+    def __predict_reward__(self, s, a):
+        input = self.__build_input__(s, a, self.replay_memory.get_previous_state_action())
+        batch_x = np.reshape(input, (1, self.n_history, self.n_inputs))
+        return self.sess.run(self.model.prediction, {self.x_placeholder: batch_x})[0][0]
 
     def __optimize_reward__(self, a, s):
         input = self.__build_input__(s, a, self.replay_memory.get_previous_state_action())

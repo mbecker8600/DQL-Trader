@@ -20,7 +20,8 @@ class ReplayMemory:
         a /= a.sum()
         self.replay_memory['s'] = self.replay_memory['s'].astype(object)  # set to allow 2d (num_history, num_input)
         self.replay_memory['a'] = self.replay_memory['a'].astype(object)  # set to allow 2d (num_history, num_stocks)
-        self.replay_memory.ix[self.counter] = (s, a, None, None)
+        self.replay_memory['s_prime'] = self.replay_memory['s_prime'].astype(object)  # set to allow 2d (num_history, num_stocks)
+        self.replay_memory.ix[self.counter] = (s, a, np.nan, np.nan)
         self.counter += 1
 
     def store_transition(self, s, a, r, s_prime):
@@ -29,16 +30,18 @@ class ReplayMemory:
         prev_action = pd.DataFrame(prev_transition['a']).shift(1)
         prev_state.ix[0] = s
         prev_action.ix[0] = a
-        self.replay_memory.ix[self.counter % self.memory_size] = (s, a, r, s_prime)
+        prev_s_prime = prev_state.shift(1)
+        prev_s_prime.ix[0] = s_prime
+        self.replay_memory.ix[self.counter % self.memory_size] = (prev_state.values, prev_action.values, r, prev_s_prime.values)
         self.counter += 1
 
     def get_previous_state_action(self):
         return self.replay_memory.ix[(self.counter - 1) % self.memory_size][['s', 'a']]
 
     def sample_replays(self):
-        replay_memory = self.replay_memory.dropna()
-        rand_idx = np.random.randint(replay_memory.shape[0], size=self.batch_size)
-        return self.replay_memory.ix[rand_idx]
+        replay_memory = self.replay_memory.dropna(how='any')
+        rand_idx = np.random.choice(replay_memory.index.tolist(), size=self.batch_size)
+        return replay_memory.ix[rand_idx]
 
     def reset(self):
         self.replay_memory[:] = np.nan
