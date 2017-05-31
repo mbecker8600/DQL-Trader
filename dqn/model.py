@@ -50,14 +50,20 @@ class Model:
         self.n_hidden = config.n_hidden
         self.n_history = config.n_history
 
+        # hyperparameters
+        self.learning_rate = config.learning_rate
+
         # weights
         self.weights = tf.Variable(tf.random_normal([self.n_hidden, self.n_outputs]), name='weights')
         self.biases = tf.Variable(tf.random_normal([self.n_outputs]), name='biases')
 
+        # placeholders
         self.state = state
         self.reward = reward
+
+        # methods
         self.prediction
-        # self.optimize
+        self.optimize
         # self.error
 
     @define_scope(initializer=tf.contrib.slim.xavier_initializer())
@@ -69,10 +75,9 @@ class Model:
 
     @define_scope
     def optimize(self):
-        logprob = tf.log(self.prediction + 1e-12)
-        cross_entropy = -tf.reduce_sum(self.label * logprob)
-        optimizer = tf.train.RMSPropOptimizer(0.03)
-        return optimizer.minimize(cross_entropy)
+        loss = tf.reduce_mean(tf.squared_difference(self.reward, self.prediction))
+        optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+        return optimizer.minimize(loss)
 
     @define_scope
     def error(self):

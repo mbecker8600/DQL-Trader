@@ -26,10 +26,12 @@ class Q:
         self.sess = tf.Session()
         init = tf.global_variables_initializer()  # Initializing the variables
         self.sess.run(init)
+        self.saver = tf.train.Saver()
 
         # Define hyperparameters
         self.learning_rate = config.learning_rate
         self.gamma = config.gamma
+        self.batch_size = config.batch_size
 
     def best_action(self, s):
         previous_transitions = self.replay_memory.get_previous_state_action()
@@ -45,10 +47,14 @@ class Q:
         pass
 
     def train_network(self, y, samples):
-        y = []
-        for index, sample in samples.iterrows():
-            print()
-        pass
+        state_actions = samples[['s', 'a']].values
+        batch_x = []
+        for sample in range(state_actions.shape[0]):
+            batch_x.append(np.concatenate((state_actions[sample][0], state_actions[sample][1]), axis=1))
+        batch_x = np.array(batch_x)
+        batch_y = np.reshape(y, (self.batch_size, self.n_outputs))
+        self.sess.run(self.model.optimize, {self.x_placeholder: batch_x, self.y_placeholder: batch_y})
+        self.saver.save(self.sess, "/tmp/model.ckpt")
 
     def compute_targets(self, samples):
         y = []
