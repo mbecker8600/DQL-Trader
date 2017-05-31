@@ -1,4 +1,3 @@
-from sklearn import preprocessing
 import numpy as np
 from .replay_memory import ReplayMemory
 from .q import Q
@@ -23,10 +22,11 @@ class Agent(object):
                 s_prime, reward, terminal = self.env.act(action)
                 self.replay_memory.store_transition(s, action, reward, s_prime)
                 minibatch_samples = self.replay_memory.sample_replays()
-                y = self.Q_hat.compute_targets(minibatch_samples)
+                y = self.Q.compute_targets(minibatch_samples)
+                # y = self.Q_hat.compute_targets(minibatch_samples)
                 self.Q.train_network(y, minibatch_samples)
-                if timestep % self.copy_estimators == 0:  # every timestep C, reset Q hat to Q
-                    self.Q_hat.set_weights(self.Q.get_weights())
+                # if timestep % self.copy_estimators == 0:  # every timestep C, reset Q hat to Q
+                #     self.Q_hat.set_weights(self.Q.get_weights())
 
     def test(self):
         pass
