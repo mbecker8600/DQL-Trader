@@ -1,6 +1,7 @@
 import numpy as np
 from .replay_memory import ReplayMemory
 from .q import Q
+from tqdm import tqdm
 
 
 class Agent(object):
@@ -13,7 +14,7 @@ class Agent(object):
         self.Q = self.Q_hat = Q(config, environment, self.replay_memory)  # initialize Q functions
 
     def train(self):
-        for episode in range(self.config.episode_size):
+        for episode in tqdm(range(self.config.episode_size)):
             self.env.reset_environment()  # reset environment each episode
             self.replay_memory.reset()  # reset replay memory
             for timestep in range(len(self.env.get_date_range())):
@@ -29,7 +30,14 @@ class Agent(object):
                 #     self.Q_hat.set_weights(self.Q.get_weights())
 
     def test(self):
-        pass
+        cum_reward = 0
+        self.env.reset_environment()  # reset environment
+        for timestep in tqdm(range(len(self.env.get_date_range()))):
+            s = self.env.get_current_state()
+            action = self.__choose_action__(s)
+            s_prime, reward, terminal = self.env.act(action)
+            cum_reward += reward
+        print(cum_reward)
 
     def __choose_action__(self, s):
         if self.__with_probability__(self.epsilon):  # with probability epsilon, return random action

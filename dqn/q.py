@@ -27,6 +27,8 @@ class Q:
         init = tf.global_variables_initializer()  # Initializing the variables
         self.sess.run(init)
         self.saver = tf.train.Saver()
+        self.checkpoint_loc = config.checkpoint_loc
+        self.saver.restore(self.sess, "/tmp/dqn/model.ckpt")
 
         # Define hyperparameters
         self.learning_rate = config.learning_rate
@@ -40,11 +42,8 @@ class Q:
         # find the action that maximizes the reward
         cons = ({'type': 'eq', 'fun': lambda x: np.sum(x) - 1})
         bounds = [(0, 1.0) for _ in range(len(previous_action))]
-        res = minimize(self.__optimize_reward__, x0=previous_action, args=(s,), bounds=bounds, constraints=cons, method='SLSQP', options={'disp': True})
+        res = minimize(self.__optimize_reward__, x0=previous_action, args=(s,), bounds=bounds, constraints=cons, method='SLSQP')
         return res.x
-
-    def max_reward(self, s):
-        pass
 
     def train_network(self, y, samples):
         state_actions = samples[['s', 'a']].values
@@ -54,7 +53,7 @@ class Q:
         batch_x = np.array(batch_x)
         batch_y = np.reshape(y, (self.batch_size, self.n_outputs))
         self.sess.run(self.model.optimize, {self.x_placeholder: batch_x, self.y_placeholder: batch_y})
-        self.saver.save(self.sess, "/tmp/model.ckpt")
+        self.saver.save(self.sess, "/tmp/dqn/model.ckpt")
 
     def compute_targets(self, samples):
         y = []
