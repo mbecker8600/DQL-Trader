@@ -16,6 +16,7 @@ class Q:
         self.n_inputs = env.get_num_stocks() * env.get_num_indicators() + env.get_num_stocks()
         self.n_hidden = config.n_hidden
         self.n_history = config.n_history
+        self.n_stocks = env.get_num_stocks()
 
         # Define placeholders and model
         self.x_placeholder = tf.placeholder("float", [None, self.n_history, self.n_inputs])
@@ -24,16 +25,20 @@ class Q:
 
         # Start tf session
         self.sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
-        init = tf.global_variables_initializer()  # Initializing the variables
-        self.sess.run(init)
+        if config.resume_training:
+            init = tf.global_variables_initializer()  # Initializing the variables
+            self.sess.run(init)
         self.saver = tf.train.Saver()
         self.checkpoint_loc = config.checkpoint_loc
-        self.saver.restore(self.sess, "C:\\tmp\\dqn\\model.ckpt")
+        if not config.resume_training:
+            self.saver.restore(self.sess, "C:\\tmp\\dqn\\model.ckpt")
 
         # Define hyperparameters
         self.learning_rate = config.learning_rate
         self.gamma = config.gamma
         self.batch_size = config.batch_size
+
+        self.bounds = [(0, 1.0) for _ in range(self.n_stocks)]
 
     def best_action(self, s):
         previous_transitions = self.replay_memory.get_previous_state_action()
@@ -41,8 +46,7 @@ class Q:
 
         # find the action that maximizes the reward
         cons = ({'type': 'eq', 'fun': lambda x: np.sum(x) - 1})
-        bounds = [(0, 1.0) for _ in range(len(previous_action))]
-        res = minimize(self.__optimize_reward__, x0=previous_action, args=(s,), bounds=bounds, constraints=cons, method='SLSQP')
+        res = minimize(self.__optimize_reward__, x0=previous_action, args=(s,), bounds=self.bounds, constraints=cons, method='SLSQP')
         return res.x
 
     def train_network(self, y, samples):

@@ -16,3 +16,4 @@ class AgentConfig(object):
 
     # checkpoints
     checkpoint_loc = '/tmp/dqn'
+    resume_training = True
