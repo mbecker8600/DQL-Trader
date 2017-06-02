@@ -17,7 +17,8 @@ class Agent(object):
         for episode in tqdm(range(self.config.episode_size)):
             self.env.reset_environment()  # reset environment each episode
             self.replay_memory.reset()  # reset replay memory
-            for timestep in range(len(self.env.get_date_range())):
+            print("Episode {}".format(episode))
+            for timestep in tqdm(range(len(self.env.get_date_range()))):
                 s = self.env.get_current_state()
                 action = self.__choose_action__(s)
                 s_prime, reward, terminal = self.env.act(action)

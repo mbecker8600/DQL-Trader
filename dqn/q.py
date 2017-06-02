@@ -1,5 +1,4 @@
 import tensorflow as tf
-from tensorflow.contrib import rnn
 import numpy as np
 from scipy.optimize import minimize
 from dqn.model import Model
@@ -23,12 +22,12 @@ class Q:
         self.model = Model(self.x_placeholder, self.y_placeholder, config, env)
 
         # Start tf session
-        self.sess = tf.Session()
+        self.sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
         init = tf.global_variables_initializer()  # Initializing the variables
         self.sess.run(init)
         self.saver = tf.train.Saver()
         self.checkpoint_loc = config.checkpoint_loc
-        self.saver.restore(self.sess, "/tmp/dqn/model.ckpt")
+        self.saver.restore(self.sess, "C:\\tmp\\dqn\\model.ckpt")
 
         # Define hyperparameters
         self.learning_rate = config.learning_rate
@@ -53,7 +52,7 @@ class Q:
         batch_x = np.array(batch_x)
         batch_y = np.reshape(y, (self.batch_size, self.n_outputs))
         self.sess.run(self.model.optimize, {self.x_placeholder: batch_x, self.y_placeholder: batch_y})
-        self.saver.save(self.sess, "/tmp/dqn/model.ckpt")
+        self.saver.save(self.sess, "C:\\tmp\\dqn\\model.ckpt")
 
     def compute_targets(self, samples):
         y = []

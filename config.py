@@ -2,7 +2,7 @@ class AgentConfig(object):
     memory_size = 100
     gamma = 0.9
     random_start = 30
-    batch_size = 30
+    batch_size = 3
     learning_rate = 0.00025
     learning_rate_decay = 0.96
     num_stocks = 500
@@ -15,4 +15,4 @@ class AgentConfig(object):
     n_hidden = 128
 
     # checkpoints
-    checkpoint_location = '/tmp/dqn'
+    checkpoint_loc = '/tmp/dqn'
