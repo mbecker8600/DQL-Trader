@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 from scipy.optimize import minimize
 from dqn.model import Model
+from profilehooks import profile
 
 
 class Q:
