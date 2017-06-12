@@ -68,7 +68,6 @@ class Q:
             y.append(reward)
         return y
 
-
     def set_weights(self, new_weights):
         self.weights = new_weights
 
