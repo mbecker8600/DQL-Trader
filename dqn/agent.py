@@ -12,13 +12,14 @@ class Agent(object):
         self.copy_estimators = config.C
         self.replay_memory = ReplayMemory(self.config, environment)  # initialize replay memory
         self.Q = self.Q_hat = Q(config, environment, self.replay_memory)  # initialize Q functions
+        self.n_history = config.n_history
 
     def train(self):
         for episode in tqdm(range(self.config.episode_size)):
             self.env.reset_environment()  # reset environment each episode
             self.replay_memory.reset()  # reset replay memory
             print("Episode {}".format(episode))
-            for timestep in tqdm(range(len(self.env.get_date_range()))):
+            for timestep in tqdm(range(len(self.env.get_date_range()) - self.n_history)):
                 s = self.env.get_current_state()
                 action = self.__choose_action__(s)
                 s_prime, reward, terminal = self.env.act(action)
@@ -35,9 +36,9 @@ class Agent(object):
     def test(self):
         cum_reward = 0
         self.env.reset_environment()  # reset environment
-        for timestep in tqdm(range(len(self.env.get_date_range()))):
+        for timestep in tqdm(range(len(self.env.get_date_range()) - self.n_history)):
             s = self.env.get_current_state()
-            action = self.__choose_action__(s)
+            action = self.Q.best_action(s)
             s_prime, reward, terminal = self.env.act(action)
             cum_reward += reward
         print(cum_reward)
