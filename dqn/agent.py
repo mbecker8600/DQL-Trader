@@ -2,6 +2,7 @@ import numpy as np
 from .replay_memory import ReplayMemory
 from .q import Q
 from tqdm import tqdm
+from profilehooks import profile
 
 
 class Agent(object):
@@ -14,24 +15,26 @@ class Agent(object):
         self.Q = self.Q_hat = Q(config, environment, self.replay_memory)  # initialize Q functions
         self.n_history = config.n_history
 
+    @profile(immediate=True)
     def train(self):
-        for episode in tqdm(range(self.config.episode_size)):
+        for epoch in tqdm(range(self.config.n_epochs)):
             self.env.reset_environment()  # reset environment each episode
             self.replay_memory.reset()  # reset replay memory
-            print("Episode {}".format(episode))
+            print("Epoch {}".format(epoch))
             for timestep in tqdm(range(len(self.env.get_date_range()) - self.n_history)):
                 s = self.env.get_current_state()
                 action = self.__choose_action__(s)
                 s_prime, reward, terminal = self.env.act(action)
                 self.replay_memory.store_transition(s, action, reward, s_prime)
                 minibatch_samples = self.replay_memory.sample_replays()
-                y = self.Q.compute_targets(minibatch_samples)
-                # y = self.Q_hat.compute_targets(minibatch_samples)
+                y = self.Q_hat.compute_targets(minibatch_samples)
                 self.Q.train_critic_network(y, minibatch_samples)
                 action_gradients = self.Q.get_action_gradients(minibatch_samples)
                 self.Q.train_actor_network(action_gradients, minibatch_samples)
-                # if timestep % self.copy_estimators == 0:  # every timestep C, reset Q hat to Q
-                #     self.Q_hat.set_weights(self.Q.get_weights())
+                if timestep % self.copy_estimators == 0:  # every timestep C, reset Q hat to Q
+                    actor_weights = self.Q.get_actor_weights()
+                    critic_weights = self.Q.get_critic_weights()
+                    self.Q_hat.update_target_network(actor_weights, critic_weights)
 
     def test(self):
         cum_reward = 0

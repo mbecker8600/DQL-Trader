@@ -102,11 +102,19 @@ class Q:
         return np.reshape(samples['r'].values, (self.batch_size, 1)) +\
                self.gamma * self.__predict_reward__(batch_s_prime, batch_actions)
 
-    def set_weights(self, new_weights):
-        self.weights = new_weights
+    def update_target_network(self, new_actor_weights, new_critic_weights):
+        self.sess.run([self.actor_model.weights.assign(new_actor_weights[0]),
+                       self.actor_model.biases.assign(new_actor_weights[1]),
+                       self.critic_model.state_weights.assign(new_critic_weights[0]),
+                       self.critic_model.action_weights.assign(new_critic_weights[1]),
+                       self.critic_model.biases.assign(new_critic_weights[2])])
 
-    def get_weights(self):
-        return self.weights
+
+    def get_actor_weights(self):
+        return self.actor_model.weights, self.actor_model.biases
+
+    def get_critic_weights(self):
+        return self.critic_model.state_weights, self.critic_model.action_weights, self.critic_model.biases
 
     def __build_actor_input(self, s, previous_transition):
         previous_states = previous_transition[0]  # (n_history, n_stocks * n_indicators)

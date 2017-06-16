@@ -10,6 +10,6 @@ if __name__ == '__main__':
     env = Environment(sd, ed, config, datafile_loc='./fundretriever/snp500.h5')
 
     agent = Agent(config, env)
-    # agent.train()
-    agent.test()
+    agent.train()
+    # agent.test()
 
