@@ -91,7 +91,6 @@ class Q:
         batch_s = np.array([samples['s'].values[i] for i in range(len(samples['s'].values))])
         batch_a = np.array([samples['a'].values[i] for i in range(len(samples['a'].values))])
         self.sess.run(self.critic_model.optimize, {self.s_critic_placeholder: batch_s, self.a_critic_placeholder: batch_a, self.y_critic_placeholder: y})
-        # self.saver.save(self.sess, "C:\\tmp\\dqn\\model.ckpt")
 
     def compute_targets(self, samples):
         batch_s_prime = np.array([samples['s_prime'].values[i] for i in range(len(samples['s_prime'].values))])
