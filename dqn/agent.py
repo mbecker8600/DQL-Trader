@@ -26,7 +26,9 @@ class Agent(object):
                 minibatch_samples = self.replay_memory.sample_replays()
                 y = self.Q.compute_targets(minibatch_samples)
                 # y = self.Q_hat.compute_targets(minibatch_samples)
-                self.Q.train_network(y, minibatch_samples)
+                self.Q.train_critic_network(y, minibatch_samples)
+                action_gradients = self.Q.get_action_gradients(minibatch_samples)
+                self.Q.train_actor_network(action_gradients, minibatch_samples)
                 # if timestep % self.copy_estimators == 0:  # every timestep C, reset Q hat to Q
                 #     self.Q_hat.set_weights(self.Q.get_weights())
 

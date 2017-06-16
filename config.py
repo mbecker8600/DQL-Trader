@@ -13,7 +13,8 @@ class AgentConfig(object):
 
     # network parameters
     n_hidden = 128
+    n_layers = 10
 
     # checkpoints
     checkpoint_loc = '/tmp/dqn'
-    resume_training = True
+    resume_training = False
