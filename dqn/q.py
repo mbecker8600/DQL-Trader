@@ -3,6 +3,7 @@ import numpy as np
 from sklearn import preprocessing
 from dqn.actor_model import ActorModel
 from dqn.critic_model import CriticModel
+from profilehooks import profile
 
 
 class Q:
@@ -52,6 +53,7 @@ class Q:
 
         self.minmax_scaler = preprocessing.MinMaxScaler()
 
+    @profile
     def best_action_batch(self, s):
         assert len(s.shape) is 3, \
             "The state should always be in the form (batch_size, n_history, n_features). " \
@@ -66,6 +68,7 @@ class Q:
         action /= action.T.sum()
         return action.T
 
+    @profile
     def best_action(self, s):
         assert len(s.shape) is 2, \
             "The state should always be in the form (n_history, n_features). " \
@@ -77,30 +80,50 @@ class Q:
 
         return self.__predict_action__(s)[0]
 
+    @profile
     def get_action_gradients(self, samples):
         batch_s = np.array([samples['s'].values[i] for i in range(len(samples['s'].values))])
         batch_a = np.array([samples['a'].values[i] for i in range(len(samples['a'].values))])
         return self.sess.run(self.critic_model.action_gradients, {self.s_critic_placeholder: batch_s, self.a_critic_placeholder: batch_a})[0][:, 0]
 
+    @profile
     def train_actor_network(self, gradients, samples):
         batch_s = np.array([samples['s'].values[i] for i in range(len(samples['s'].values))])
         self.sess.run(self.actor_model.optimize,
                       {self.x_actor_placeholder: batch_s, self.action_gradient_placeholder: gradients})
 
+    @profile
     def train_critic_network(self, y, samples):
         batch_s = np.array([samples['s'].values[i] for i in range(len(samples['s'].values))])
         batch_a = np.array([samples['a'].values[i] for i in range(len(samples['a'].values))])
         self.sess.run(self.critic_model.optimize, {self.s_critic_placeholder: batch_s, self.a_critic_placeholder: batch_a, self.y_critic_placeholder: y})
 
+    @profile
     def compute_targets(self, samples):
-        batch_s_prime = np.array([samples['s_prime'].values[i] for i in range(len(samples['s_prime'].values))])
+        # differentiate the terminal samples from non terminal samples
+        samples.index = range(len(samples))
+        terminal_samples = samples[samples['terminal'] == True]
+        nonterminal_samples = samples[samples['terminal'] == False]
+
+        # compute rewards for nonterminal samples
+        batch_s_prime = np.array([nonterminal_samples['s_prime'].values[i] for i in range(len(nonterminal_samples['s_prime'].values))])
         new_actions = self.best_action_batch(batch_s_prime)
-        batch_actions = np.array([samples['a'].values[i] for i in range(len(samples['a'].values))])
+        batch_actions = np.array([nonterminal_samples['a'].values[i] for i in range(len(nonterminal_samples['a'].values))])
         batch_actions = np.roll(batch_actions, 1, axis=1)  # roll off the old actions
         batch_actions[:, 0] = new_actions  # put the new actions in it's spot
-        return np.reshape(samples['r'].values, (self.batch_size, 1)) +\
+        nonterminal_rewards = np.reshape(nonterminal_samples['r'].values, (len(nonterminal_samples), 1)) +\
                self.gamma * self.__predict_reward__(batch_s_prime, batch_actions)
 
+        targets = np.zeros((samples.shape[0], 1))
+        targets[nonterminal_samples.index] = nonterminal_rewards
+
+        if len(terminal_samples) > 0:
+            terminal_rewards = np.reshape(terminal_samples['r'].values, (terminal_samples.shape[0], 1))
+            targets[terminal_samples.index] = terminal_rewards
+
+        return targets
+
+    @profile
     def update_target_network(self, new_actor_weights, new_critic_weights):
         self.sess.run([self.actor_model.weights.assign(new_actor_weights[0]),
                        self.actor_model.biases.assign(new_actor_weights[1]),

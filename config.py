@@ -8,7 +8,7 @@ class AgentConfig(object):
     batch_size = 30
     learning_rate = 0.00025
     learning_rate_decay = 0.96
-    n_epochs = 1000
+    n_epochs = 5
     epsilon = .1
     C = 100
     n_history = 5
@@ -20,4 +20,4 @@ class AgentConfig(object):
 
     # checkpoints
     checkpoint_loc = '/tmp/dqn'
-    resume_training = True
+    resume_training = False

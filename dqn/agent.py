@@ -2,6 +2,7 @@ import numpy as np
 from .replay_memory import ReplayMemory
 from .q import Q
 from tqdm import tqdm
+from profilehooks import profile
 
 
 class Agent(object):
@@ -14,6 +15,7 @@ class Agent(object):
         self.Q = self.Q_hat = Q(config, environment, self.replay_memory)  # initialize Q functions
         self.n_history = config.n_history
 
+    @profile
     def train(self):
         for epoch in tqdm(range(self.config.n_epochs)):
             self.env.reset_environment()  # reset environment each episode
@@ -33,7 +35,7 @@ class Agent(object):
                     actor_weights = self.Q.get_actor_weights()
                     critic_weights = self.Q.get_critic_weights()
                     self.Q_hat.update_target_network(actor_weights, critic_weights)
-            if epoch % 50 == 0:  # save every 50 epochs
+            if epoch % 10 == 0:  # save every 10 epochs
                 self.Q.saver.save(self.Q.sess, "C:\\tmp\\dqn\\model.ckpt", global_step=epoch)
 
 

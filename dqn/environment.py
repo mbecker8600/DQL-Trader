@@ -2,6 +2,7 @@ import pandas_datareader.data as web
 import numpy as np
 import pandas as pd
 from sklearn import preprocessing
+from profilehooks import profile
 
 
 class Environment:
@@ -26,9 +27,11 @@ class Environment:
     def get_num_indicators(self):
         return self.num_indicators
 
+    @profile
     def get_current_state(self):
         return preprocessing.normalize(np.reshape(self.get_state_at_timestep(self.counter).values, (1, self.num_indicators * self.num_stocks)))
 
+    @profile
     def get_n_history_state(self):
         state = []
         for t in range(self.counter - self.n_history, self.counter):
@@ -36,6 +39,7 @@ class Environment:
             state.append(s.values.ravel())
         return preprocessing.normalize(np.flip(np.reshape(np.array(state), (self.n_history, self.num_indicators * self.num_stocks)), axis=0))
 
+    @profile
     def get_state_at_timestep(self, timestep):
         state = pd.DataFrame(columns=['close', 'high', 'low', 'open', 'volume'])
         for sector in self.sectors:
@@ -43,6 +47,7 @@ class Environment:
             state = state.append(data)
         return state
 
+    @profile
     def act(self, action):
         s = self.get_state_at_timestep(self.counter)  # get the current state
         self.counter += 1  # increment the counter by one to get the next state
@@ -57,6 +62,7 @@ class Environment:
 
         return s_prime, reward, terminal
 
+    @profile
     def __calc_reward__(self, s, s_prime, action):
         perc_increase = (s_prime['close'] - s['close']) / s['close']
         allocations = perc_increase * action
