@@ -15,7 +15,8 @@ class Agent(object):
         self.n_history = config.n_history
 
     def train(self):
-        for epoch in tqdm(range(self.config.n_epochs)):
+        start = 0 if self.config.resume_from_checkpoint is None else self.config.resume_from_checkpoint
+        for epoch in tqdm(range(start, self.config.n_epochs)):
             self.env.reset_environment()  # reset environment each episode
             self.replay_memory.reset()  # reset replay memory
             print("Epoch {}".format(epoch))

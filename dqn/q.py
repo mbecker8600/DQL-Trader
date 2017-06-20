@@ -37,13 +37,14 @@ class Q:
 
         # Start tf session
         self.sess = tf.Session()
-        if not config.resume_training:
+        if config.resume_from_checkpoint is None:
             init = tf.global_variables_initializer()  # Initializing the variables
             self.sess.run(init)
         self.saver = tf.train.Saver()
         self.checkpoint_loc = config.checkpoint_loc
-        if config.resume_training:
-            self.saver.restore(self.sess, "C:\\tmp\\dqn\\model.ckpt")
+        if config.resume_from_checkpoint is not None:
+            checkpoint_num = config.resume_from_checkpoint
+            self.saver.restore(self.sess, "C:\\tmp\\dqn\\model.ckpt-{}".format(checkpoint_num))
 
         # Define hyperparameters
         self.learning_rate = config.learning_rate
@@ -75,7 +76,10 @@ class Q:
             input = self.__build_actor_input(s, self.replay_memory.get_previous_state_action())
         s = np.reshape(input, (1, self.n_history, self.n_features))  # reshape to tensorflow format
 
-        return self.__predict_action__(s)[0]
+        action = self.__predict_action__(s)[0]
+        action = self.minmax_scaler.fit_transform(action.T)
+        action /= action.T.sum()
+        return action.T
 
     def get_action_gradients(self, samples):
         batch_s = np.array([samples['s'].values[i] for i in range(len(samples['s'].values))])
