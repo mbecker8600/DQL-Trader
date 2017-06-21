@@ -15,5 +15,5 @@ if __name__ == '__main__':
 
     agent = Agent(config, env)
     agent.train()
-    # agent.test()
+    # agent.test(gen_plot=True, benchmark='VTI')
 

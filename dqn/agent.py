@@ -2,6 +2,9 @@ import numpy as np
 from .replay_memory import ReplayMemory
 from .q import Q
 from tqdm import tqdm
+import matplotlib.pyplot as plt
+import pandas_datareader.data as web
+import pandas as pd
 
 
 class Agent(object):
@@ -18,7 +21,7 @@ class Agent(object):
         start = 0 if self.config.resume_from_checkpoint is None else self.config.resume_from_checkpoint
         for epoch in tqdm(range(start, self.config.n_epochs)):
             self.env.reset_environment()  # reset environment each episode
-            self.replay_memory.reset()  # reset replay memory
+            # self.replay_memory.reset()  # reset replay memory
             print("Epoch {}".format(epoch))
             for timestep in range(len(self.env.get_date_range()) - self.n_history):
                 s = self.env.get_current_state()
@@ -37,16 +40,30 @@ class Agent(object):
             if epoch % 100 == 0:  # save every 10 epochs
                 self.Q.saver.save(self.Q.sess, "C:\\tmp\\dqn\\model.ckpt", global_step=epoch)
 
-
-    def test(self):
-        cum_reward = 0
+    def test(self, gen_plot=False, benchmark='SPY'):
+        returns = []
         self.env.reset_environment()  # reset environment
         for timestep in tqdm(range(len(self.env.get_date_range()) - self.n_history)):
             s = self.env.get_current_state()
             action = self.Q.best_action(s)
             s_prime, reward, terminal = self.env.act(action)
-            cum_reward += reward
-        print(cum_reward)
+            returns.append(reward)
+        returns = np.array(returns)
+        print('Cumulative reward: {}'.format(returns.cumsum()[-1]))
+
+        if gen_plot:
+            date_range = self.env.get_date_range()
+            benchmark_returns = web.DataReader(benchmark, 'google', date_range[0], date_range[-1])
+            perc_change = (benchmark_returns['Close'] - benchmark_returns['Close'].shift(1)) / benchmark_returns['Close']
+
+            returns_df = pd.DataFrame(columns=[benchmark, 'DQL'], index=date_range)
+            returns_df[benchmark].iloc[1:] = perc_change
+            returns_df['DQL'].iloc[len(date_range) - len(returns):] = returns
+            returns_df.dropna(inplace=True)
+            returns_df = returns_df.cumsum()
+            returns_df.plot()
+            plt.show()
+
 
     def __choose_action__(self, s):
         if self.__with_probability__(self.epsilon):  # with probability epsilon, return random action

@@ -20,4 +20,4 @@ class AgentConfig(object):
 
     # checkpoints
     checkpoint_loc = '/tmp/dqn'
-    resume_from_checkpoint = None
+    resume_from_checkpoint = 300
