@@ -6,20 +6,19 @@ from dqn.critic_model import CriticModel
 
 
 class Q:
-    def __init__(self, config, env, replay_memory):
-        self.env = env
+    def __init__(self, config, replay_memory, n_syms):
         self.replay_memory = replay_memory
         self.config = config
 
         # global parameters
         self.n_history = config.n_history
-        self.n_stocks = env.get_num_stocks()
-        self.n_actions = env.get_num_stocks()
-        self.n_features = env.get_num_stocks() * env.get_num_indicators()
+        self.n_stocks = n_syms
+        self.n_actions = n_syms
+        self.n_features = n_syms + n_syms * len(config.indicators)  # features = n_allocations + n_syms * n_indicators
 
         # network params
         self.n_critic_outputs = 1
-        self.n_actor_outputs = env.get_num_stocks()
+        self.n_actor_outputs = n_syms
         self.n_hidden = config.n_hidden
 
         # Define actor placeholders
@@ -32,8 +31,8 @@ class Q:
         self.y_critic_placeholder = tf.placeholder("float", [None, self.n_critic_outputs])
 
         # Define models
-        self.actor_model = ActorModel(self.x_actor_placeholder, self.action_gradient_placeholder, config, env)
-        self.critic_model = CriticModel(self.s_critic_placeholder, self.a_critic_placeholder, self.y_critic_placeholder, config, env)
+        self.actor_model = ActorModel(self.x_actor_placeholder, self.action_gradient_placeholder, config, n_syms)
+        self.critic_model = CriticModel(self.s_critic_placeholder, self.a_critic_placeholder, self.y_critic_placeholder, config, n_syms)
 
         # Start tf session
         self.sess = tf.Session()

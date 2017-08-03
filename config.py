@@ -1,5 +1,7 @@
 class AgentConfig(object):
-    num_stocks = 500
+
+    # data parameters
+    indicators = ['open', 'high', 'low', 'close', 'volume']
 
     # hyperparams
     memory_size = 100
@@ -20,4 +22,4 @@ class AgentConfig(object):
 
     # checkpoints
     checkpoint_loc = '/tmp/dqn'
-    resume_from_checkpoint = 300
+    resume_from_checkpoint = None

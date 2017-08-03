@@ -43,10 +43,10 @@ def define_scope(function, scope=None, *args, **kwargs):
 
 class ActorModel:
 
-    def __init__(self, state, action_gradient, config, env):
+    def __init__(self, state, action_gradient, config, n_syms):
         # network params
-        self.n_outputs = env.get_num_stocks()
-        self.n_inputs = env.get_num_stocks() * env.get_num_indicators()
+        self.n_outputs = n_syms
+        self.n_inputs = n_syms + n_syms * len(config.indicators)
         self.n_hidden = config.n_hidden
         self.n_history = config.n_history
 
