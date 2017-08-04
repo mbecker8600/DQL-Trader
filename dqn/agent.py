@@ -32,14 +32,17 @@ class Agent(object):
 
     def handle_data(self, context, data):
 
+        data = data.history([symbol(sym) for sym in self.syms], self.config.indicators, self.config.n_history, '1d')
+        state = self.__create_state__(data, self.portfolio_memory)
+
         # initialize replay memory the first time
         if not self.replay_memory or not self.Q:
-            data = data.history([symbol(sym) for sym in self.syms], self.config.indicators, self.config.n_history, '1d')
-            state = self.__create_state__(data, self.portfolio_memory)
             self.replay_memory = ReplayMemory(self.config, state, len(self.syms))  # initialize replay memory
             self.Q = self.Q_hat = Q(self.config, self.replay_memory, len(self.syms))  # initialize Q functions
 
         if not context.primed:  # run one iteration to start
+            action = self.__choose_action__(state)
+        else:
             pass
 
 
