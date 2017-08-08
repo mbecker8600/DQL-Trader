@@ -8,6 +8,7 @@ import pandas as pd
 
 
 class Agent(object):
+
     def __init__(self, config, environment):
         self.env = environment
         self.config = config
