@@ -7,6 +7,8 @@ from sklearn import preprocessing
 class Environment:
     def __init__(self, start_date, end_date, config, datafile_loc='../fundretriever/snp500.h5'):
         self.datafile_loc = datafile_loc
+        self.start_date = start_date
+        self.end_date = end_date
         self.date_range = self.__build_date_range__(start_date, end_date)
         self.sectors = self.__build_sectors__()
         self.num_stocks = self.__build_num_stocks__(self.sectors)
@@ -35,7 +37,7 @@ class Environment:
         for t in range(self.counter - self.n_history, self.counter):
             s = self.get_state_at_timestep(t)
             state.append(s.values.ravel())
-        return preprocessing.normalize(np.flip(np.reshape(np.array(state), (self.n_history, self.num_indicators * self.num_stocks)), axis=0))
+        return preprocessing.normalize(np.reshape(np.array(state), (self.n_history, self.num_indicators * self.num_stocks)), axis=0)
 
     def read_data_into_memory(self):
         state = pd.Panel(major_axis=self.date_range, items=['close', 'high', 'low', 'open', 'volume'])
