@@ -1,7 +1,6 @@
 from datetime import datetime
 from config import AgentConfig
 from dqn.agent import Agent
-from dqn.environment import Environment
 import pytz
 import warnings
 

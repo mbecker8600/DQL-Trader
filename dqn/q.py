@@ -71,10 +71,7 @@ class Q:
             "The state should always be in the form (n_history, n_features). " \
             "Input shape is {}".format(len(s.shape))
 
-        if s.shape[0] == 1:  # if the state only holds the current day's history, grab the previous history
-            input = self.__build_actor_input(s, self.replay_memory.get_previous_state_action())
-        s = np.reshape(input, (1, self.n_history, self.n_features))  # reshape to tensorflow format
-
+        s = np.reshape(s, (1, self.n_history, self.n_features))  # reshape to tensorflow format
         action = self.__predict_action__(s)[0]
         action = self.minmax_scaler.fit_transform(action.T)
         action /= action.T.sum()
