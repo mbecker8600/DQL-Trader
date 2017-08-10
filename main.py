@@ -13,11 +13,11 @@ if __name__ == '__main__':
 
     # parameters
     sd = datetime(2005, 1, 1, 0, 0, 0, 0, pytz.utc)
-    ed = datetime(2013, 1, 1, 0, 0, 0, 0, pytz.utc)
+    ed = datetime(2015, 1, 1, 0, 0, 0, 0, pytz.utc)
     syms = ['GOOGL', 'AAPL', 'XOM', 'IBM']
     captial = 1000000
 
     agent = Agent(config, syms, captial)
     agent.train(sd, ed)
-    # agent.test(gen_plot=True, benchmark='VTI')
+    # agent.test(sd, ed)
 

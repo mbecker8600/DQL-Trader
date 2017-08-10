@@ -7,7 +7,8 @@ import matplotlib.pyplot as plt
 import pandas_datareader.data as web
 import pandas as pd
 from zipline import run_algorithm
-from zipline.api import order_target_percent, symbol, set_commission, set_slippage
+from zipline.api import order_target_percent, symbol, set_commission, set_slippage, schedule_function
+from zipline.utils.events import date_rules, time_rules
 from zipline.finance.commission import PerShare
 from zipline.finance.slippage import VolumeShareSlippage
 from sklearn import preprocessing
@@ -32,9 +33,12 @@ class Agent(object):
         set_commission(PerShare())
         set_slippage(VolumeShareSlippage())
         self.portfolio_memory = PortfolioMemory(len(self.syms), self.config.n_history)
+        schedule_function(self.training_rebalance,
+                          date_rule=date_rules.every_day(),
+                          time_rule=time_rules.market_open(minutes=1))
         context.primed = False
 
-    def handle_data(self, context, data):
+    def training_rebalance(self, context, data):
 
         # initial setup
         if context.primed:
@@ -82,37 +86,22 @@ class Agent(object):
         start = 0 if self.config.resume_from_checkpoint is None else self.config.resume_from_checkpoint
         for self.epoch in tqdm(range(start, self.config.n_epochs)):
             print("Epoch {}".format(self.epoch))
-            trading_days = date_range('2010-01-01', '2015-01-01', freq=trading_day)
+            trading_days = date_range(sd, ed, freq=trading_day)
             self.timestep_progress = tqdm(total=len(trading_days))
             run_algorithm(initialize=self.initialize_algo,
-                          handle_data=self.handle_data,
-                          capital_base=1000000,
+                          capital_base=self.capital,
                           start=sd,
                           end=ed)
 
-    def test(self, gen_plot=False, benchmark='SPY'):
-        returns = []
-        self.env.reset_environment()  # reset environment
-        for timestep in tqdm(range(len(self.env.get_date_range()) - self.n_history)):
-            s = self.env.get_current_state()
-            action = self.Q.best_action(s)
-            s_prime, reward, terminal = self.env.act(action)
-            returns.append(reward)
-        returns = np.array(returns)
-        print('Cumulative reward: {}'.format(returns.cumsum()[-1]))
-
-        if gen_plot:
-            date_range = self.env.get_date_range()
-            benchmark_returns = web.DataReader(benchmark, 'google', date_range[0], date_range[-1])
-            perc_change = (benchmark_returns['Close'] - benchmark_returns['Close'].shift(1)) / benchmark_returns['Close']
-
-            returns_df = pd.DataFrame(columns=[benchmark, 'DQL'], index=date_range)
-            returns_df[benchmark].iloc[1:] = perc_change
-            returns_df['DQL'].iloc[len(date_range) - len(returns):] = returns
-            returns_df.dropna(inplace=True)
-            returns_df = returns_df.cumsum()
-            returns_df.plot()
-            plt.show()
+    def test(self, sd, ed, gen_plot=False, benchmark='SPY'):
+        trading_days = date_range(sd, ed, freq=trading_day)
+        self.timestep_progress = tqdm(total=len(trading_days))
+        results = run_algorithm(initialize=self.initialize_algo,
+                                capital_base=self.capital,
+                                start=sd,
+                                end=ed)
+        results.portfolio_value.plot()
+        plt.show()
 
     def __choose_action__(self, s):
         if self.__with_probability__(self.epsilon):  # with probability epsilon, return random action
