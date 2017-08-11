@@ -29,7 +29,7 @@ class Agent(object):
         self.portfolio_memory = None
         self.timestep = 0
 
-    def initialize_algo(self, context):
+    def initialize_training_algo(self, context):
         set_commission(PerShare())
         set_slippage(VolumeShareSlippage())
         self.portfolio_memory = PortfolioMemory(len(self.syms), self.config.n_history)
@@ -38,8 +38,8 @@ class Agent(object):
                           time_rule=time_rules.market_open(minutes=1))
         context.primed = False
 
-    def training_rebalance(self, context, data):
 
+    def training_rebalance(self, context, data):
         # initial setup
         if context.primed:
             weights = self.__get_current_portfolio_weights__(context)
@@ -82,12 +82,37 @@ class Agent(object):
         context.previous_state = state
         self.timestep_progress.update(1)
 
+    def initialize_testing_algo(self, context):
+        set_commission(PerShare())
+        set_slippage(VolumeShareSlippage())
+        self.portfolio_memory = PortfolioMemory(len(self.syms), self.config.n_history)
+        schedule_function(self.testing_rebalance,
+                          date_rule=date_rules.every_day(),
+                          time_rule=time_rules.market_open(minutes=1))
+        context.primed = False
+
+    def testing_rebalance(self, context, data):
+        data = data.history([symbol(sym) for sym in self.syms], self.config.indicators, self.config.n_history, '1d')
+        state = self.__create_state__(data, self.portfolio_memory)
+
+        # initialize replay memory the first time
+        if not self.replay_memory or not self.Q:
+            self.replay_memory = ReplayMemory(self.config, state, len(self.syms))  # initialize replay memory
+            self.Q = self.Q_hat = Q(self.config, self.replay_memory, len(self.syms))  # initialize Q functions
+
+        action = self.__choose_action__(state)
+        self.__execute_orders__(action)
+
     def train(self, sd, ed):
         start = 0 if self.config.resume_from_checkpoint is None else self.config.resume_from_checkpoint
         for self.epoch in tqdm(range(start, self.config.n_epochs)):
             print("Epoch {}".format(self.epoch))
             trading_days = date_range(sd, ed, freq=trading_day)
             self.timestep_progress = tqdm(total=len(trading_days))
+            # data = web.DataReader(self.syms, data_source='google', start=sd, end=ed)
+            # data = data.swapaxes(0, 2)
+            # data.rename_axis({'Open': 'open', 'High': 'high', 'Low': 'low', 'Close': 'close', 'Volume': 'volume'},
+            #                  axis='minor_axis', inplace=True)
             run_algorithm(initialize=self.initialize_algo,
                           capital_base=self.capital,
                           start=sd,
@@ -96,7 +121,7 @@ class Agent(object):
     def test(self, sd, ed, gen_plot=False, benchmark='SPY'):
         trading_days = date_range(sd, ed, freq=trading_day)
         self.timestep_progress = tqdm(total=len(trading_days))
-        results = run_algorithm(initialize=self.initialize_algo,
+        results = run_algorithm(initialize=self.initialize_testing_algo,
                                 capital_base=self.capital,
                                 start=sd,
                                 end=ed)
