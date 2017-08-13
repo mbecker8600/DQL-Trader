@@ -13,7 +13,7 @@ class AgentConfig(object):
     n_epochs = 1000
     epsilon = .1
     C = 100
-    n_history = 5
+    n_history = 30
     tau = .001  # soft update for target network
 
     # network parameters
@@ -22,4 +22,4 @@ class AgentConfig(object):
 
     # checkpoints
     checkpoint_loc = '/tmp/dqn'
-    resume_from_checkpoint = None
+    resume_from_checkpoint = 90

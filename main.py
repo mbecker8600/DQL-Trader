@@ -3,6 +3,7 @@ from config import AgentConfig
 from dqn.agent import Agent
 import pytz
 import warnings
+import pandas as pd
 
 
 if __name__ == '__main__':
@@ -12,9 +13,11 @@ if __name__ == '__main__':
     # env = Environment(sd, ed, config, datafile_loc='./fundretriever/snp500.h5')
 
     # parameters
-    sd = datetime(2014, 1, 1, 0, 0, 0, 0, pytz.utc)
+    sd = datetime(2005, 1, 1, 0, 0, 0, 0, pytz.utc)
     ed = datetime(2015, 1, 1, 0, 0, 0, 0, pytz.utc)
-    syms = ['GOOGL', 'AAPL', 'XOM', 'IBM']
+
+    syms = pd.read_csv('sp500.csv')
+    syms = syms.values[:, 0].tolist()
     captial = 1000000
 
     agent = Agent(config, syms, captial)

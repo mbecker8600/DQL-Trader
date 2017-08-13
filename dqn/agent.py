@@ -22,30 +22,64 @@ class Agent(object):
         self.epsilon = config.epsilon
         self.copy_estimators = config.C
         self.n_history = config.n_history
-        self.syms = syms
+        self.ticker_syms = syms
+        self.syms = None
         self.capital = capital
         self.replay_memory = None
         self.Q = self.Q_hat = None
         self.portfolio_memory = None
         self.timestep = 0
 
+    def train(self, sd, ed):
+        start = 0 if self.config.resume_from_checkpoint is None else self.config.resume_from_checkpoint
+        for self.epoch in tqdm(range(start, self.config.n_epochs)):
+            print("Epoch {}".format(self.epoch))
+            trading_days = date_range(sd, ed, freq=trading_day)
+            self.timestep_progress = tqdm(total=len(trading_days) / 12)
+            run_algorithm(initialize=self.initialize_training_algo,
+                          capital_base=self.capital,
+                          start=sd,
+                          end=ed)
+
+    def test(self, sd, ed, gen_plot=False, benchmark='SPY'):
+        trading_days = date_range(sd, ed, freq=trading_day)
+        self.timestep_progress = tqdm(total=len(trading_days) / 12)
+        results = run_algorithm(initialize=self.initialize_testing_algo,
+                                capital_base=self.capital,
+                                start=sd,
+                                end=ed)
+        results.portfolio_value.plot()
+        plt.show()
+
     def initialize_training_algo(self, context):
         set_commission(PerShare())
         set_slippage(VolumeShareSlippage())
+        if self.syms is None:
+            self.syms = self.__validate_symbols__(self.ticker_syms)
         self.portfolio_memory = PortfolioMemory(len(self.syms), self.config.n_history)
         schedule_function(self.training_rebalance,
-                          date_rule=date_rules.every_day(),
+                          date_rule=date_rules.month_start(),
                           time_rule=time_rules.market_open(minutes=1))
         context.primed = False
 
+    def initialize_testing_algo(self, context):
+        set_commission(PerShare())
+        set_slippage(VolumeShareSlippage())
+        if self.syms is None:
+            self.syms = self.__validate_symbols__(self.ticker_syms)
+        self.portfolio_memory = PortfolioMemory(len(self.syms), self.config.n_history)
+        schedule_function(self.testing_rebalance,
+                          date_rule=date_rules.month_start(),
+                          time_rule=time_rules.market_open(minutes=1))
+        context.primed = False
 
     def training_rebalance(self, context, data):
         # initial setup
         if context.primed:
             weights = self.__get_current_portfolio_weights__(context)
             self.portfolio_memory.add_memory(weights)
-        data = data.history([symbol(sym) for sym in self.syms], self.config.indicators, self.config.n_history, '1d')
-        state = self.__create_state__(data, self.portfolio_memory)
+        historical_data = data.history(self.syms, self.config.indicators, self.config.n_history, '1d')
+        state = self.__create_state__(historical_data, self.portfolio_memory)
 
         # initialize replay memory the first time
         if not self.replay_memory or not self.Q:
@@ -56,7 +90,7 @@ class Agent(object):
         if not context.primed:  # run one iteration to start
             action = self.__choose_action__(state)
             context.previous_action = action
-            self.__execute_orders__(action)
+            self.__execute_orders__(data, action)
             context.primed = True  # set to true after first run
         else:
             # calculate reward and train network from previous action result
@@ -77,23 +111,14 @@ class Agent(object):
             # perform best action with newly trained network
             action = self.__choose_action__(state)
             context.previous_action = action
-            self.__execute_orders__(action)
+            self.__execute_orders__(data, action)
 
         context.previous_state = state
         self.timestep_progress.update(1)
 
-    def initialize_testing_algo(self, context):
-        set_commission(PerShare())
-        set_slippage(VolumeShareSlippage())
-        self.portfolio_memory = PortfolioMemory(len(self.syms), self.config.n_history)
-        schedule_function(self.testing_rebalance,
-                          date_rule=date_rules.every_day(),
-                          time_rule=time_rules.market_open(minutes=1))
-        context.primed = False
-
     def testing_rebalance(self, context, data):
-        data = data.history([symbol(sym) for sym in self.syms], self.config.indicators, self.config.n_history, '1d')
-        state = self.__create_state__(data, self.portfolio_memory)
+        historical_data = data.history([symbol(sym) for sym in self.syms], self.config.indicators, self.config.n_history, '1d')
+        state = self.__create_state__(historical_data, self.portfolio_memory)
 
         # initialize replay memory the first time
         if not self.replay_memory or not self.Q:
@@ -101,32 +126,16 @@ class Agent(object):
             self.Q = self.Q_hat = Q(self.config, self.replay_memory, len(self.syms))  # initialize Q functions
 
         action = self.__choose_action__(state)
-        self.__execute_orders__(action)
+        self.__execute_orders__(data, action)
 
-    def train(self, sd, ed):
-        start = 0 if self.config.resume_from_checkpoint is None else self.config.resume_from_checkpoint
-        for self.epoch in tqdm(range(start, self.config.n_epochs)):
-            print("Epoch {}".format(self.epoch))
-            trading_days = date_range(sd, ed, freq=trading_day)
-            self.timestep_progress = tqdm(total=len(trading_days))
-            # data = web.DataReader(self.syms, data_source='google', start=sd, end=ed)
-            # data = data.swapaxes(0, 2)
-            # data.rename_axis({'Open': 'open', 'High': 'high', 'Low': 'low', 'Close': 'close', 'Volume': 'volume'},
-            #                  axis='minor_axis', inplace=True)
-            run_algorithm(initialize=self.initialize_algo,
-                          capital_base=self.capital,
-                          start=sd,
-                          end=ed)
-
-    def test(self, sd, ed, gen_plot=False, benchmark='SPY'):
-        trading_days = date_range(sd, ed, freq=trading_day)
-        self.timestep_progress = tqdm(total=len(trading_days))
-        results = run_algorithm(initialize=self.initialize_testing_algo,
-                                capital_base=self.capital,
-                                start=sd,
-                                end=ed)
-        results.portfolio_value.plot()
-        plt.show()
+    def __validate_symbols__(self, syms):
+        symbols = []
+        for sym in syms:
+            try:
+                symbols.append(symbol(sym))
+            except:
+                print('Symbol {} not found. Not training on it.'.format(sym))
+        return symbols
 
     def __choose_action__(self, s):
         if self.__with_probability__(self.epsilon):  # with probability epsilon, return random action
@@ -141,19 +150,21 @@ class Agent(object):
         return True if random <= epsilon else False
 
     def __create_state__(self, data, portfolio_memory):
-        state = np.reshape(np.swapaxes(data.values, 0, 1), (5, 20))
+        data = np.nan_to_num(data)
+        state = np.reshape(np.swapaxes(data, 0, 1), (self.n_history, len(self.syms) * len(self.config.indicators)))
         state = np.concatenate((portfolio_memory.portfolio_allocations, state), axis=1)
         return preprocessing.normalize(state)
 
-    def __execute_orders__(self, action):
+    def __execute_orders__(self, data, action):
         for sym, target_allocation in zip(self.syms, action):
-            order_target_percent(symbol(sym), target_allocation)
+            if data.can_trade(sym):
+                order_target_percent(sym, target_allocation)
 
     def __get_current_portfolio_weights__(self, context):
         allocations = []
         for sym in self.syms:
             try:
-                allocations.append(context.portfolio.current_portfolio_weights[symbol(sym)])
+                allocations.append(context.portfolio.current_portfolio_weights[sym])
             except IndexError:
                 allocations.append(0.0)
         return np.array(allocations)
