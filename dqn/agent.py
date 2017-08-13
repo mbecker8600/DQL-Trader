@@ -71,7 +71,6 @@ class Agent(object):
         schedule_function(self.testing_rebalance,
                           date_rule=date_rules.month_start(),
                           time_rule=time_rules.market_open(minutes=1))
-        context.primed = False
 
     def training_rebalance(self, context, data):
         # initial setup
@@ -117,7 +116,7 @@ class Agent(object):
         self.timestep_progress.update(1)
 
     def testing_rebalance(self, context, data):
-        historical_data = data.history([symbol(sym) for sym in self.syms], self.config.indicators, self.config.n_history, '1d')
+        historical_data = data.history(self.syms, self.config.indicators, self.config.n_history, '1d')
         state = self.__create_state__(historical_data, self.portfolio_memory)
 
         # initialize replay memory the first time
@@ -127,6 +126,7 @@ class Agent(object):
 
         action = self.__choose_action__(state)
         self.__execute_orders__(data, action)
+        self.timestep_progress.update(1)
 
     def __validate_symbols__(self, syms):
         symbols = []
