@@ -4,10 +4,10 @@ class AgentConfig(object):
     indicators = ['open', 'high', 'low', 'close', 'volume']
 
     # hyperparams
-    memory_size = 100
+    memory_size = 200
     gamma = 0.9
     random_start = 30
-    batch_size = 30
+    batch_size = 75
     learning_rate = 0.00025
     learning_rate_decay = 0.96
     n_epochs = 1000
@@ -22,4 +22,4 @@ class AgentConfig(object):
 
     # checkpoints
     checkpoint_loc = '/tmp/dqn'
-    resume_from_checkpoint = 90
+    resume_from_checkpoint = 210

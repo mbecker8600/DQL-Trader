@@ -11,8 +11,10 @@ from zipline.api import order_target_percent, symbol, set_commission, set_slippa
 from zipline.utils.events import date_rules, time_rules
 from zipline.finance.commission import PerShare
 from zipline.finance.slippage import VolumeShareSlippage
+import pyfolio as pf
 from sklearn import preprocessing
 from zipline.utils.tradingcalendar import trading_day
+from zipline.data.benchmarks import get_benchmark_returns
 from pandas import date_range
 
 
@@ -35,21 +37,24 @@ class Agent(object):
         for self.epoch in tqdm(range(start, self.config.n_epochs)):
             print("Epoch {}".format(self.epoch))
             trading_days = date_range(sd, ed, freq=trading_day)
-            self.timestep_progress = tqdm(total=len(trading_days) / 12)
+            self.timestep_progress = tqdm(total=len(trading_days) / 21)
             run_algorithm(initialize=self.initialize_training_algo,
                           capital_base=self.capital,
                           start=sd,
                           end=ed)
 
-    def test(self, sd, ed, gen_plot=False, benchmark='SPY'):
+    def test(self, sd, ed, live_start_date, benchmark='SPY'):
         trading_days = date_range(sd, ed, freq=trading_day)
-        self.timestep_progress = tqdm(total=len(trading_days) / 12)
+        self.timestep_progress = tqdm(total=len(trading_days) / 21)
         results = run_algorithm(initialize=self.initialize_testing_algo,
                                 capital_base=self.capital,
                                 start=sd,
                                 end=ed)
-        results.portfolio_value.plot()
-        plt.show()
+        returns, positions, transactions = pf.utils.extract_rets_pos_txn_from_zipline(results)
+        benchmark_returns = get_benchmark_returns(benchmark, sd, ed)
+        benchmark_returns.ix[sd] = 0.0
+        pf.create_full_tear_sheet(returns, positions=positions, transactions=transactions,
+                                  benchmark_rets=benchmark_returns, live_start_date=live_start_date, round_trips=True)
 
     def initialize_training_algo(self, context):
         set_commission(PerShare())
@@ -124,17 +129,24 @@ class Agent(object):
             self.replay_memory = ReplayMemory(self.config, state, len(self.syms))  # initialize replay memory
             self.Q = self.Q_hat = Q(self.config, self.replay_memory, len(self.syms))  # initialize Q functions
 
-        action = self.__choose_action__(state)
+        action = self.Q.best_action(state)
         self.__execute_orders__(data, action)
         self.timestep_progress.update(1)
 
     def __validate_symbols__(self, syms):
+        training_not_found = ['ANDV', 'BHGE', 'BHF', 'CSRA', 'DXC', 'FTV', 'HPE', 'HLT', 'INFO', 'KHC', 'PYPL', 'PPG',
+                                'QRVO', 'SPGI', 'TRV', 'UA', 'WRK', 'WLTW', 'CPGX', 'BXLT', 'LIFE', 'MOLX', 'NYX', 'BMC',
+                                'HNZ', 'CVH', 'PCS', 'TIE', 'CBE', 'GR', 'PGN', 'SLE', 'NVLS', 'EP', 'MHS', 'CEG', 'TLAB',
+                                'WFR', 'CEPH', 'MI', 'MEE', 'NOVL', 'GENZ', 'MFE', 'AYE', 'KG', 'EK', 'SII', 'XTO', 'BJS',
+                                'RX', 'SGP', 'CBE', 'ABK', 'TRB', 'DJ', 'AV', 'SBR', 'SBL', 'GLK', 'QTRN', 'BS']
         symbols = []
+        print('symbols not found')
         for sym in syms:
             try:
-                symbols.append(symbol(sym))
+                if sym not in training_not_found:  # HACK FOR TRAINING/TESTING DISCREPENCIES. NEED TO FIX
+                    symbols.append(symbol(sym))
             except:
-                print('Symbol {} not found. Not training on it.'.format(sym))
+                print('{}'.format(sym))
         return symbols
 
     def __choose_action__(self, s):

@@ -13,8 +13,9 @@ if __name__ == '__main__':
     # env = Environment(sd, ed, config, datafile_loc='./fundretriever/snp500.h5')
 
     # parameters
-    sd = datetime(2005, 1, 1, 0, 0, 0, 0, pytz.utc)
-    ed = datetime(2015, 1, 1, 0, 0, 0, 0, pytz.utc)
+    sd = datetime(2014, 10, 1, 0, 0, 0, 0, pytz.utc)
+    ed = datetime(2017, 7, 1, 0, 0, 0, 0, pytz.utc)
+    live_start_date = datetime(2015, 1, 1, 0, 0, 0, 0, pytz.utc)
 
     syms = pd.read_csv('sp500.csv')
     syms = syms.values[:, 0].tolist()
@@ -22,5 +23,5 @@ if __name__ == '__main__':
 
     agent = Agent(config, syms, captial)
     # agent.train(sd, ed)
-    agent.test(sd, ed)
+    agent.test(sd, ed, live_start_date=live_start_date)
 
