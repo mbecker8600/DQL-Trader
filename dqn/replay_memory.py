@@ -4,24 +4,22 @@ from config import AgentConfig
 
 
 class ReplayMemory:
-    def __init__(self, config, env):
-        self.env = env
+    def __init__(self, config, initial_state, n_syms):
         self.n_history = config.n_history
         self.memory_size = config.memory_size
         self.batch_size = config.batch_size
-        self.replay_memory = pd.DataFrame(np.nan, index=range(self.memory_size), columns=['s', 'a', 'r', 's_prime'])
+        self.replay_memory = pd.DataFrame(np.nan, index=range(self.memory_size), columns=['s', 'a', 'r', 's_prime', 'terminal'])
         self.counter = 0
 
-        self.__buffer_memory__()  # buffer the memory  with an initial set of states in the history with dummy actions
+        self.__buffer_memory__(initial_state, n_syms)  # buffer the memory  with an initial set of states in the history with dummy actions
 
-    def __buffer_memory__(self):
-        s = self.env.get_n_history_state()
-        a = np.random.rand(self.n_history, self.env.get_num_stocks())
+    def __buffer_memory__(self, initial_state, n_syms):
+        a = np.random.rand(self.n_history, n_syms)
         a /= a.sum()
         self.replay_memory['s'] = self.replay_memory['s'].astype(object)  # set to allow 2d (num_history, num_input)
         self.replay_memory['a'] = self.replay_memory['a'].astype(object)  # set to allow 2d (num_history, num_stocks)
         self.replay_memory['s_prime'] = self.replay_memory['s_prime'].astype(object)  # set to allow 2d (num_history, num_stocks)
-        self.replay_memory.ix[self.counter] = (s, a, np.nan, np.nan)
+        self.replay_memory.ix[self.counter] = (initial_state, a, np.nan, np.nan, False)
         self.counter += 1
 
     def store_transition(self, s, a, r, s_prime):
@@ -32,7 +30,8 @@ class ReplayMemory:
         prev_action.ix[0] = a
         prev_s_prime = prev_state.shift(1)
         prev_s_prime.ix[0] = s_prime
-        self.replay_memory.ix[self.counter % self.memory_size] = (prev_state.values, prev_action.values, r, prev_s_prime.values)
+        terminal = True if prev_s_prime.isnull().values.any() else False
+        self.replay_memory.ix[self.counter % self.memory_size] = (prev_state.values, prev_action.values, r, prev_s_prime.values, terminal)
         self.counter += 1
 
     def get_previous_state_action(self):

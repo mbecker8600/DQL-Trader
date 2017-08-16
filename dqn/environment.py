@@ -7,12 +7,15 @@ from sklearn import preprocessing
 class Environment:
     def __init__(self, start_date, end_date, config, datafile_loc='../fundretriever/snp500.h5'):
         self.datafile_loc = datafile_loc
+        self.start_date = start_date
+        self.end_date = end_date
         self.date_range = self.__build_date_range__(start_date, end_date)
         self.sectors = self.__build_sectors__()
         self.num_stocks = self.__build_num_stocks__(self.sectors)
         self.num_indicators = 5
         self.n_history = config.n_history
         self.counter = self.n_history
+        self.data = self.read_data_into_memory()
 
     def reset_environment(self):
         self.counter = self.n_history
@@ -34,14 +37,22 @@ class Environment:
         for t in range(self.counter - self.n_history, self.counter):
             s = self.get_state_at_timestep(t)
             state.append(s.values.ravel())
-        return preprocessing.normalize(np.flip(np.reshape(np.array(state), (self.n_history, self.num_indicators * self.num_stocks)), axis=0))
+        return preprocessing.normalize(np.reshape(np.array(state), (self.n_history, self.num_indicators * self.num_stocks)), axis=0)
+
+    def read_data_into_memory(self):
+        state = pd.Panel(major_axis=self.date_range, items=['close', 'high', 'low', 'open', 'volume'])
+        for sector in self.sectors:
+            close = pd.read_hdf(self.datafile_loc, sector)['close'].loc[self.date_range]
+            high = pd.read_hdf(self.datafile_loc, sector)['high'].loc[self.date_range]
+            low = pd.read_hdf(self.datafile_loc, sector)['low'].loc[self.date_range]
+            open = pd.read_hdf(self.datafile_loc, sector)['open'].loc[self.date_range]
+            volume = pd.read_hdf(self.datafile_loc, sector)['volume'].loc[self.date_range]
+            data = pd.Panel({'close': close, 'high': high, 'low': low, 'open': open, 'volume': volume})
+            state = pd.concat([state, data], axis=2)
+        return state
 
     def get_state_at_timestep(self, timestep):
-        state = pd.DataFrame(columns=['close', 'high', 'low', 'open', 'volume'])
-        for sector in self.sectors:
-            data = pd.read_hdf(self.datafile_loc, sector).major_xs(self.date_range[timestep])
-            state = state.append(data)
-        return state
+        return self.data.major_xs(self.date_range[timestep])
 
     def act(self, action):
         s = self.get_state_at_timestep(self.counter)  # get the current state

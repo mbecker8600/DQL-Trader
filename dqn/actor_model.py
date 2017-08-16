@@ -41,12 +41,12 @@ def define_scope(function, scope=None, *args, **kwargs):
     return decorator
 
 
-class Model:
+class ActorModel:
 
-    def __init__(self, state, reward, config, env):
+    def __init__(self, state, action_gradient, config, n_syms):
         # network params
-        self.n_outputs = 1
-        self.n_inputs = env.get_num_stocks() * env.get_num_indicators() + env.get_num_stocks()
+        self.n_outputs = n_syms
+        self.n_inputs = n_syms + n_syms * len(config.indicators)
         self.n_hidden = config.n_hidden
         self.n_history = config.n_history
 
@@ -54,12 +54,14 @@ class Model:
         self.learning_rate = config.learning_rate
 
         # weights
-        self.weights = tf.Variable(tf.random_normal([self.n_hidden, self.n_outputs]), name='weights')
-        self.biases = tf.Variable(tf.random_normal([self.n_outputs]), name='biases')
+        self.weights = tf.Variable(tf.random_normal([self.n_hidden, self.n_outputs]), name='actor_weights')
+        self.biases = tf.Variable(tf.random_normal([self.n_outputs]), name='actor_biases')
 
         # placeholders
         self.state = state
-        self.reward = reward
+        self.action_gradient = action_gradient  # This gradient will be provided by the critic network
+
+        self.actor_gradients = tf.gradients(self.prediction, [self.weights, self.biases], -self.action_gradient)
 
         # methods
         self.prediction
@@ -69,21 +71,15 @@ class Model:
     @define_scope(initializer=tf.contrib.slim.xavier_initializer())
     def prediction(self):
         X = tf.unstack(self.state, self.n_history, 1)
-        lstm_cell = rnn.BasicLSTMCell(self.n_hidden, forget_bias=1.0, reuse=None)
-        outputs, states = rnn.static_rnn(lstm_cell, X, dtype=tf.float32)
+        with tf.variable_scope('actor_model'):
+            lstm_cell = rnn.BasicLSTMCell(self.n_hidden, forget_bias=1.0, reuse=None)
+            outputs, states = rnn.static_rnn(lstm_cell, X, dtype=tf.float32)
         return tf.matmul(outputs[-1], self.weights) + self.biases
 
     @define_scope
     def optimize(self):
-        loss = tf.reduce_mean(tf.squared_difference(self.reward, self.prediction))
-        optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
-        return optimizer.minimize(loss)
-
-    @define_scope
-    def error(self):
-        mistakes = tf.not_equal(
-            tf.argmax(self.label, 1), tf.argmax(self.prediction, 1))
-        return tf.reduce_mean(tf.cast(mistakes, tf.float32))
+        return tf.train.AdamOptimizer(self.learning_rate).\
+            apply_gradients(zip(self.actor_gradients, [self.weights, self.biases]))
 
 if __name__ == '__main__':
     from datetime import datetime
@@ -95,8 +91,8 @@ if __name__ == '__main__':
     env = Environment(sd, ed, config)
 
     x = tf.placeholder("float", [None, 5, 3018])
-    y = tf.placeholder("float", [None, 5, 5])
-    model = Model(x, y, config, env)
+    y = tf.placeholder("float", [None, 5, 503])
+    model = ActorModel(x, y, config, env)
     sess = tf.Session()
     sess.run(tf.initialize_all_variables())
 

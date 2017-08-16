@@ -1,18 +1,25 @@
 class AgentConfig(object):
-    memory_size = 100
+
+    # data parameters
+    indicators = ['open', 'high', 'low', 'close', 'volume']
+
+    # hyperparams
+    memory_size = 200
     gamma = 0.9
     random_start = 30
-    batch_size = 30
+    batch_size = 75
     learning_rate = 0.00025
     learning_rate_decay = 0.96
-    num_stocks = 500
-    episode_size = 100
+    n_epochs = 1000
     epsilon = .1
-    C = 10
-    n_history = 5
+    C = 100
+    n_history = 30
+    tau = .001  # soft update for target network
 
     # network parameters
     n_hidden = 128
+    n_layers = 10
 
     # checkpoints
-    checkpoint_location = '/tmp/dqn'
+    checkpoint_loc = '/tmp/dqn'
+    resume_from_checkpoint = 210
