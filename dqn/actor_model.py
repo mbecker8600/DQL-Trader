@@ -3,7 +3,6 @@ import tensorflow as tf
 from tensorflow.contrib import rnn
 import numpy as np
 
-
 def doublewrap(function):
     """
     A decorator decorator, allowing to use the decorator to be used without
@@ -72,7 +71,7 @@ class ActorModel:
     def prediction(self):
         X = tf.unstack(self.state, self.n_history, 1)
         with tf.variable_scope('actor_model'):
-            lstm_cell = rnn.BasicLSTMCell(self.n_hidden, forget_bias=1.0, reuse=None)
+            lstm_cell = rnn.BasicLSTMCell(self.n_hidden, forget_bias=1.0, reuse=None, activation=tf.nn.relu)
             outputs, states = rnn.static_rnn(lstm_cell, X, dtype=tf.float32)
         return tf.matmul(outputs[-1], self.weights) + self.biases
 
@@ -84,17 +83,16 @@ class ActorModel:
 if __name__ == '__main__':
     from datetime import datetime
     from config import AgentConfig
-    from dqn.environment import Environment
     sd = datetime(2005, 1, 1)
     ed = datetime(2015, 1, 1)
     config = AgentConfig()
-    env = Environment(sd, ed, config)
+    n_sym = 4
 
-    x = tf.placeholder("float", [None, 5, 3018])
-    y = tf.placeholder("float", [None, 5, 503])
-    model = ActorModel(x, y, config, env)
+    x = tf.placeholder("float", [None, config.n_history, n_sym * len(config.indicators)])
+    y = tf.placeholder("float", [None, config.n_history, n_sym])
+    model = ActorModel(x, y, config, n_sym)
     sess = tf.Session()
     sess.run(tf.initialize_all_variables())
 
 
-    sess.run(model.prediction, {x: np.random.rand(1, 5, 3018)})
+    sess.run(model.prediction, {x: np.random.rand(1, config.n_history, n_sym * len(config.indicators))})
