@@ -14,6 +14,7 @@ from zipline.utils.tradingcalendar import trading_day
 from zipline.data.benchmarks import get_benchmark_returns
 from pandas import date_range
 import tensorflow as tf
+from sklearn import preprocessing
 
 
 class Agent(object):
@@ -101,9 +102,7 @@ class Agent(object):
             reward = context.portfolio.portfolio_value
             self.replay_memory.store_transition(context.previous_state[0], context.previous_action, reward, state[0])
             minibatch_samples = self.replay_memory.sample_replays()
-            if self.config.normalize_batch:
-                self.__normalize_batch__(minibatch_samples)
-            y = self.Q_hat.compute_targets(minibatch_samples)
+            y = preprocessing.scale(self.Q_hat.compute_targets(minibatch_samples))  # standardize the rewards.
             self.Q.train_critic_network(y, minibatch_samples)
             action_gradients = self.Q.get_action_gradients(minibatch_samples)
             self.Q.train_actor_network(action_gradients, minibatch_samples)
@@ -183,7 +182,3 @@ class Agent(object):
             except IndexError:
                 allocations.append(0.0)
         return np.array(allocations)
-
-    def __normalize_batch__(self, batch):
-
-        pass

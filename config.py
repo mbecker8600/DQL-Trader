@@ -14,7 +14,6 @@ class AgentConfig(object):
     epsilon = .1
     C = 20  # update the true network every C timesteps
     n_history = 30
-    normalize_batch = True
 
     # network parameters
     n_hidden = 128
