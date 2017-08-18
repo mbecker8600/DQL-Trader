@@ -17,9 +17,12 @@ if __name__ == '__main__':
     ed = datetime(2015, 1, 1, 0, 0, 0, 0, pytz.utc)
     live_start_date = datetime(2015, 1, 1, 0, 0, 0, 0, pytz.utc)
 
-    syms = pd.read_csv('sp500.csv')
-    syms = syms.values[:, 0].tolist()
+    # syms = pd.read_csv('sp500.csv')
+    # syms = syms.values[:, 0].tolist()
     captial = 1000000
+
+    syms = ['AAPL', 'XOM', 'IBM', 'CAT', 'WDC', 'MCO', 'JDSU']
+
 
     agent = Agent(config, syms, captial)
     agent.train(sd, ed)

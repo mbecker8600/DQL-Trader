@@ -9,7 +9,6 @@ from zipline.utils.events import date_rules, time_rules
 from zipline.finance.commission import PerShare
 from zipline.finance.slippage import VolumeShareSlippage
 import pyfolio as pf
-from sklearn import preprocessing
 from zipline.utils.tradingcalendar import trading_day
 from zipline.data.benchmarks import get_benchmark_returns
 from pandas import date_range
@@ -84,7 +83,7 @@ class Agent(object):
         historical_data = data.history(self.syms, self.config.indicators, self.config.n_history, '1d')
         state = self.__create_state__(historical_data, self.portfolio_memory)
 
-        # initialize replay memory the first time
+        # # initialize replay memory the first time
         if not self.replay_memory or not self.Q:
             self.replay_memory = ReplayMemory(self.config, state, len(self.syms))  # initialize replay memory
             with tf.variable_scope("Q"):
@@ -110,7 +109,7 @@ class Agent(object):
                 actor_weights = self.Q.sess.run(self.Q.get_actor_weights())
                 critic_weights = self.Q.sess.run(self.Q.get_critic_weights())
                 self.Q_hat.update_target_network(actor_weights, critic_weights)
-            if self.epoch % 10 == 0:  # save every 10 epochs
+            if self.timestep % 1000 == 0:  # save every 10 epochs
                 self.Q.saver.save(self.Q.sess, "C:\\tmp\\dqn\\model.ckpt", global_step=self.epoch)
 
             # perform best action with newly trained network
@@ -129,7 +128,8 @@ class Agent(object):
         # initialize replay memory the first time
         if not self.replay_memory or not self.Q:
             self.replay_memory = ReplayMemory(self.config, state, len(self.syms))  # initialize replay memory
-            self.Q = Q(self.config, self.replay_memory, len(self.syms))  # initialize Q functions
+            with tf.variable_scope("Q"):
+                self.Q = Q(self.config, self.replay_memory, len(self.syms))  # initialize Q functions
 
         action = self.Q.best_action(state)
         self.__execute_orders__(data, action)
