@@ -75,10 +75,10 @@ class CriticModel:
         S = tf.unstack(self.state, self.n_history, 1)
         A = tf.unstack(self.action, self.n_history, 1)
         with tf.variable_scope('critic_state_model'):
-            lstm_state_cell = rnn.BasicLSTMCell(self.n_hidden, forget_bias=1.0, reuse=None)
+            lstm_state_cell = rnn.BasicLSTMCell(self.n_hidden, forget_bias=1.0, reuse=None, activation=tf.nn.relu)
             state_outputs, state_states = rnn.static_rnn(lstm_state_cell, S, dtype=tf.float32)
         with tf.variable_scope('critic_action_model'):
-            lstm_action_cell = rnn.BasicLSTMCell(self.n_hidden, forget_bias=1.0, reuse=None)
+            lstm_action_cell = rnn.BasicLSTMCell(self.n_hidden, forget_bias=1.0, reuse=None, activation=tf.nn.relu)
             action_outputs, action_states = rnn.static_rnn(lstm_action_cell, A, dtype=tf.float32)
         return tf.matmul(state_outputs[-1], self.state_weights) + tf.matmul(action_outputs[-1], self.action_weights) + self.biases
 

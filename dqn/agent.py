@@ -3,9 +3,6 @@ from .replay_memory import ReplayMemory
 from .portfolio_memory import PortfolioMemory
 from .q import Q
 from tqdm import tqdm
-import matplotlib.pyplot as plt
-import pandas_datareader.data as web
-import pandas as pd
 from zipline import run_algorithm
 from zipline.api import order_target_percent, symbol, set_commission, set_slippage, schedule_function
 from zipline.utils.events import date_rules, time_rules
@@ -16,6 +13,8 @@ from sklearn import preprocessing
 from zipline.utils.tradingcalendar import trading_day
 from zipline.data.benchmarks import get_benchmark_returns
 from pandas import date_range
+import tensorflow as tf
+from sklearn import preprocessing
 
 
 class Agent(object):
@@ -88,8 +87,10 @@ class Agent(object):
         # initialize replay memory the first time
         if not self.replay_memory or not self.Q:
             self.replay_memory = ReplayMemory(self.config, state, len(self.syms))  # initialize replay memory
-            self.Q = self.Q_hat = Q(self.config, self.replay_memory, len(self.syms))  # initialize Q functions
-            # self.Q_hat = Q(self.config, self.replay_memory, len(self.syms))  # initialize Q_hat functions
+            with tf.variable_scope("Q"):
+                self.Q = Q(self.config, self.replay_memory, len(self.syms))  # initialize Q functions
+            with tf.variable_scope("Q_hat"):
+                self.Q_hat = Q(self.config, self.replay_memory, len(self.syms))  # initialize Q functions
 
         if not context.primed:  # run one iteration to start
             action = self.__choose_action__(state)
@@ -101,13 +102,13 @@ class Agent(object):
             reward = context.portfolio.portfolio_value
             self.replay_memory.store_transition(context.previous_state[0], context.previous_action, reward, state[0])
             minibatch_samples = self.replay_memory.sample_replays()
-            y = self.Q_hat.compute_targets(minibatch_samples)
+            y = preprocessing.scale(self.Q_hat.compute_targets(minibatch_samples))  # standardize the rewards.
             self.Q.train_critic_network(y, minibatch_samples)
             action_gradients = self.Q.get_action_gradients(minibatch_samples)
             self.Q.train_actor_network(action_gradients, minibatch_samples)
             if self.timestep % self.copy_estimators == 0:  # every timestep C, reset Q hat to Q
-                actor_weights = self.Q.get_actor_weights()
-                critic_weights = self.Q.get_critic_weights()
+                actor_weights = self.Q.sess.run(self.Q.get_actor_weights())
+                critic_weights = self.Q.sess.run(self.Q.get_critic_weights())
                 self.Q_hat.update_target_network(actor_weights, critic_weights)
             if self.epoch % 10 == 0:  # save every 10 epochs
                 self.Q.saver.save(self.Q.sess, "C:\\tmp\\dqn\\model.ckpt", global_step=self.epoch)
@@ -119,6 +120,7 @@ class Agent(object):
 
         context.previous_state = state
         self.timestep_progress.update(1)
+        self.timestep += 1
 
     def testing_rebalance(self, context, data):
         historical_data = data.history(self.syms, self.config.indicators, self.config.n_history, '1d')
@@ -127,7 +129,7 @@ class Agent(object):
         # initialize replay memory the first time
         if not self.replay_memory or not self.Q:
             self.replay_memory = ReplayMemory(self.config, state, len(self.syms))  # initialize replay memory
-            self.Q = self.Q_hat = Q(self.config, self.replay_memory, len(self.syms))  # initialize Q functions
+            self.Q = Q(self.config, self.replay_memory, len(self.syms))  # initialize Q functions
 
         action = self.Q.best_action(state)
         self.__execute_orders__(data, action)
