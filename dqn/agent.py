@@ -109,7 +109,7 @@ class Agent(object):
                 actor_weights = self.Q.sess.run(self.Q.get_actor_weights())
                 critic_weights = self.Q.sess.run(self.Q.get_critic_weights())
                 self.Q_hat.update_target_network(actor_weights, critic_weights)
-            if self.timestep % 1000 == 0:  # save every 10 epochs
+            if self.timestep % 10000 == 0:  # save every 10 epochs
                 self.Q.saver.save(self.Q.sess, "C:\\tmp\\dqn\\model.ckpt", global_step=self.epoch)
 
             # perform best action with newly trained network
@@ -153,7 +153,7 @@ class Agent(object):
 
     def __choose_action__(self, s):
         if self.__with_probability__(self.epsilon):  # with probability epsilon, return random action
-            action = np.random.rand(len(self.syms))
+            action = np.random.rand(len(self.syms * 2))
             action /= action.sum()
         else:
             action = self.Q.best_action(s)
@@ -170,9 +170,12 @@ class Agent(object):
         return preprocessing.normalize(state)
 
     def __execute_orders__(self, data, action):
-        for sym, target_allocation in zip(self.syms, action):
+        long_positions = action[:len(action)/2]
+        short_positions = action[len(action)/2:]
+        for sym, long, short in zip(self.syms, long_positions, short_positions):
             if data.can_trade(sym):
-                order_target_percent(sym, target_allocation)
+                order_target_percent(sym, long)
+                order_target_percent(sym, -short)
 
     def __get_current_portfolio_weights__(self, context):
         allocations = []

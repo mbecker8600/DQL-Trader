@@ -44,7 +44,7 @@ class ActorModel:
 
     def __init__(self, state, action_gradient, config, n_syms):
         # network params
-        self.n_outputs = n_syms
+        self.n_outputs = n_syms * 2
         self.n_inputs = n_syms + n_syms * len(config.indicators)
         self.n_hidden = config.n_hidden
         self.n_history = config.n_history

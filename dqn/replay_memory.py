@@ -14,7 +14,7 @@ class ReplayMemory:
         self.__buffer_memory__(initial_state, n_syms)  # buffer the memory  with an initial set of states in the history with dummy actions
 
     def __buffer_memory__(self, initial_state, n_syms):
-        a = np.random.rand(self.n_history, n_syms)
+        a = np.random.rand(self.n_history, n_syms * 2)
         a /= a.sum()
         self.replay_memory['s'] = self.replay_memory['s'].astype(object)  # set to allow 2d (num_history, num_input)
         self.replay_memory['a'] = self.replay_memory['a'].astype(object)  # set to allow 2d (num_history, num_stocks)

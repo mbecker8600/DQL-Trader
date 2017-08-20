@@ -13,7 +13,7 @@ class Q:
         # global parameters
         self.n_history = config.n_history
         self.n_stocks = n_syms
-        self.n_actions = n_syms
+        self.n_actions = n_syms * 2
         self.n_features = n_syms + n_syms * len(config.indicators)  # features = n_allocations + n_syms * n_indicators
 
         # network params

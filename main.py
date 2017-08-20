@@ -21,7 +21,7 @@ if __name__ == '__main__':
     # syms = syms.values[:, 0].tolist()
     captial = 1000000
 
-    syms = ['AAPL', 'XOM', 'IBM', 'CAT', 'WDC', 'MCO', 'JDSU']
+    syms = ['AAPL', 'XOM', 'IBM', 'CAT']
 
 
     agent = Agent(config, syms, captial)
