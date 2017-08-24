@@ -111,7 +111,7 @@ class Agent(object):
                 actor_weights = self.Q.sess.run(self.Q.get_actor_weights())
                 critic_weights = self.Q.sess.run(self.Q.get_critic_weights())
                 self.Q_hat.update_target_network(actor_weights, critic_weights)
-            if self.timestep % 100 == 0:  # save every 10 epochs
+            if self.timestep % 20000 == 0:  # save every 152 epochs
                 self.Q.saver.save(self.Q.sess, "C:\\tmp\\dqn\\model-Q.ckpt", global_step=self.epoch)
                 self.Q_hat.saver.save(self.Q_hat.sess, "C:\\tmp\\dqn\\model-Q_hat.ckpt", global_step=self.epoch)
 

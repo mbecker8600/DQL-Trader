@@ -10,7 +10,6 @@ if __name__ == '__main__':
     warnings.simplefilter("ignore", DeprecationWarning)
 
     config = AgentConfig()
-    # env = Environment(sd, ed, config, datafile_loc='./fundretriever/snp500.h5')
 
     # parameters
     sd = datetime(2004, 1, 1, 0, 0, 0, 0, pytz.utc)
@@ -21,7 +20,7 @@ if __name__ == '__main__':
     # syms = syms.values[:, 0].tolist()
     captial = 1000000
 
-    syms = ['AAPL', 'XOM', 'IBM', 'CAT']
+    syms = ['AAPL', 'XOM', 'AMZN', 'CAT', 'WMT', 'BAC', 'AET', 'BLL', 'T', 'DUK', 'CBG']
 
 
     agent = Agent(config, syms, captial)
