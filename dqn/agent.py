@@ -83,13 +83,15 @@ class Agent(object):
         historical_data = data.history(self.syms, self.config.indicators, self.config.n_history, '1d')
         state = self.__create_state__(historical_data, self.portfolio_memory)
 
-        # # initialize replay memory the first time
+        # initialize replay memory the first time
         if not self.replay_memory or not self.Q:
+            # train normalization function
+
             self.replay_memory = ReplayMemory(self.config, state, len(self.syms))  # initialize replay memory
             with tf.variable_scope("Q"):
-                self.Q = Q(self.config, self.replay_memory, len(self.syms))  # initialize Q functions
+                self.Q = Q(self.config, self.replay_memory, len(self.syms), 'Q')  # initialize Q functions
             with tf.variable_scope("Q_hat"):
-                self.Q_hat = Q(self.config, self.replay_memory, len(self.syms))  # initialize Q functions
+                self.Q_hat = Q(self.config, self.replay_memory, len(self.syms), 'Q_hat')  # initialize Q functions
 
         if not context.primed:  # run one iteration to start
             action = self.__choose_action__(state)
@@ -109,8 +111,9 @@ class Agent(object):
                 actor_weights = self.Q.sess.run(self.Q.get_actor_weights())
                 critic_weights = self.Q.sess.run(self.Q.get_critic_weights())
                 self.Q_hat.update_target_network(actor_weights, critic_weights)
-            if self.timestep % 10000 == 0:  # save every 10 epochs
-                self.Q.saver.save(self.Q.sess, "C:\\tmp\\dqn\\model.ckpt", global_step=self.epoch)
+            if self.timestep % 100 == 0:  # save every 10 epochs
+                self.Q.saver.save(self.Q.sess, "C:\\tmp\\dqn\\model-Q.ckpt", global_step=self.epoch)
+                self.Q_hat.saver.save(self.Q_hat.sess, "C:\\tmp\\dqn\\model-Q_hat.ckpt", global_step=self.epoch)
 
             # perform best action with newly trained network
             action = self.__choose_action__(state)
@@ -167,7 +170,7 @@ class Agent(object):
         data = np.nan_to_num(data)
         state = np.reshape(np.swapaxes(data, 0, 1), (self.n_history, len(self.syms) * len(self.config.indicators)))
         state = np.concatenate((portfolio_memory.portfolio_allocations, state), axis=1)
-        return preprocessing.normalize(state)
+        return preprocessing.StandardScaler().fit_transform(state)
 
     def __execute_orders__(self, data, action):
         long_positions = action[:len(action)/2]

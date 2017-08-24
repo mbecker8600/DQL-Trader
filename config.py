@@ -5,15 +5,15 @@ class AgentConfig(object):
 
     # hyperparams
     memory_size = 1000
-    gamma = 0.8
+    gamma = 0.9
     random_start = 30
-    batch_size = 50
+    batch_size = 75
     learning_rate = 0.00025
     learning_rate_decay = 0.96
     n_epochs = 10000
     epsilon = .1
     C = 50  # update the true network every C timesteps
-    n_history = 30
+    n_history = 45
 
     # network parameters
     n_hidden = 128
@@ -21,4 +21,4 @@ class AgentConfig(object):
 
     # checkpoints
     checkpoint_loc = '/tmp/dqn'
-    resume_from_checkpoint = 2348
+    resume_from_checkpoint = None

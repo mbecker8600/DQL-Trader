@@ -6,7 +6,7 @@ from dqn.critic_model import CriticModel
 
 
 class Q:
-    def __init__(self, config, replay_memory, n_syms):
+    def __init__(self, config, replay_memory, n_syms, scope_name='Q'):
         self.replay_memory = replay_memory
         self.config = config
 
@@ -43,7 +43,7 @@ class Q:
         self.checkpoint_loc = config.checkpoint_loc
         if config.resume_from_checkpoint is not None:
             checkpoint_num = config.resume_from_checkpoint
-            self.saver.restore(self.sess, "C:\\tmp\\dqn\\model.ckpt-{}".format(checkpoint_num))
+            self.saver.restore(self.sess, "C:\\tmp\\dqn\\model-{}.ckpt-{}".format(scope_name, checkpoint_num))
 
         # Define hyperparameters
         self.learning_rate = config.learning_rate
