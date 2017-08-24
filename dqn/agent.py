@@ -132,7 +132,7 @@ class Agent(object):
         if not self.replay_memory or not self.Q:
             self.replay_memory = ReplayMemory(self.config, state, len(self.syms))  # initialize replay memory
             with tf.variable_scope("Q"):
-                self.Q = Q(self.config, self.replay_memory, len(self.syms))  # initialize Q functions
+                self.Q = Q(self.config, self.replay_memory, len(self.syms), 'Q')  # initialize Q functions
 
         action = self.Q.best_action(state)
         self.__execute_orders__(data, action)
@@ -156,7 +156,7 @@ class Agent(object):
 
     def __choose_action__(self, s):
         if self.__with_probability__(self.epsilon):  # with probability epsilon, return random action
-            action = np.random.rand(len(self.syms * 2))
+            action = np.random.rand(len(self.syms) * 2)
             action /= action.sum()
         else:
             action = self.Q.best_action(s)
